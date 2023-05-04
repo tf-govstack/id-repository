@@ -176,15 +176,13 @@ public class VidServiceImpl implements VidService<VidRequestDTO, ResponseWrapper
 	public ResponseWrapper<VidResponseDTO> generateVid(VidRequestDTO vidRequest) throws IdRepoAppException {
 		String uin = vidRequest.getUin();
 		try {
-			Vid vid;
+			VidResponseDTO responseDTO;
 			if (Objects.nonNull(vidRequest.getVidStatus()) && vidRequest.getVidStatus().contentEquals(DRAFT_STATUS)) {
-				vid = generateVid(uin, vidRequest.getVidType(), DRAFT_STATUS);
+				responseDTO = generateVid(uin, vidRequest.getVidType(), DRAFT_STATUS);
 			} else {
-				vid = generateVidWithActiveUin(uin, vidRequest.getVidType());
+				responseDTO = generateVidWithActiveUin(uin, vidRequest.getVidType());
 			}
-			VidResponseDTO responseDTO = new VidResponseDTO();
-			responseDTO.setVid(vid.getVid());
-			responseDTO.setVidStatus(vid.getStatusCode());
+			
 			return buildResponse(responseDTO, id.get("create"));
 		} catch (IdRepoAppUncheckedException e) {
 			mosipLogger.error(IdRepoSecurityManager.getUser(), ID_REPO_VID_SERVICE, CREATE_VID,
@@ -196,7 +194,7 @@ public class VidServiceImpl implements VidService<VidRequestDTO, ResponseWrapper
 		}
 	}
 	
-	private Vid generateVidWithActiveUin(String uin, String vidType) throws IdRepoAppException {
+	private VidResponseDTO generateVidWithActiveUin(String uin, String vidType) throws IdRepoAppException {
 		checkUinStatus(uin);
 		return generateVid(uin, vidType, EnvUtil.getVidActiveStatus());
 	}
@@ -212,7 +210,7 @@ public class VidServiceImpl implements VidService<VidRequestDTO, ResponseWrapper
 	 * @throws IdRepoAppException
 	 *             the id repo app exception
 	 */
-	private Vid generateVid(String uin, String vidType, String vidStatus) throws IdRepoAppException {
+	private VidResponseDTO generateVid(String uin, String vidType, String vidStatus) throws IdRepoAppException {
 		int saltId = securityManager.getSaltKeyForId(uin);
 		String encryptSalt = uinEncryptSaltRepo.retrieveSaltById(saltId);
 		String hashSalt = uinHashSaltRepo.retrieveSaltById(saltId);
@@ -239,7 +237,12 @@ public class VidServiceImpl implements VidService<VidRequestDTO, ResponseWrapper
 				notify(uin, vidStatus,
 						Collections.singletonList(createVidInfo(vidEntity, getIdHashAndAttributesForIDAEvent(vidEntity.getVid()))),
 						false);
-			return vidRepo.save(vidEntity);
+			Vid vid = vidRepo.save(vidEntity);
+			VidResponseDTO vidResponseDTO = new VidResponseDTO();
+			vidResponseDTO.setVid(vid.getVid());
+			vidResponseDTO.setVidStatus(vid.getStatusCode());
+
+			return vidResponseDTO;
 		} else if (vidDetails.size() == policy.getAllowedInstances() && Boolean.TRUE.equals(policy.getAutoRestoreAllowed())) {
 			Vid vidObject = vidDetails.get(0);
 			Map<String, String> idHashAndAttributes = getIdHashAndAttributesForIDAEvent(vidObject.getVid());
@@ -247,14 +250,19 @@ public class VidServiceImpl implements VidService<VidRequestDTO, ResponseWrapper
 			vidObject.setUpdatedBy(IdRepoSecurityManager.getUser());
 			vidObject.setUpdatedDTimes(DateUtils.getUTCCurrentDateTime());
 			vidObject.setUin(uinToEncrypt);
-			vidRepo.saveAndFlush(vidObject);
+			Vid revokedVid = vidRepo.saveAndFlush(vidObject);
 			// Get the salted ID Hash before modifiying the vid entity, otherwise result in
 			// onFlushDirty call in the interceptor resulting in inconsistently encrypted
 			// UIN value in VID entity
 			if (!vidStatus.contentEquals(DRAFT_STATUS))
 				notify(uin, EnvUtil.getVidDeactivatedStatus(),
 						Collections.singletonList(createVidInfo(vidObject, idHashAndAttributes)), true);
-			return generateVid(uin, vidType, vidStatus);
+			VidResponseDTO vidResponseDTO = generateVid(uin, vidType, vidStatus);			
+			VidResponseDTO restoreVid = new VidResponseDTO();
+			restoreVid.setVid(revokedVid.getVid());
+			restoreVid.setVidStatus(revokedVid.getStatusCode());
+			vidResponseDTO.setRestoredVid(restoreVid);			
+			return vidResponseDTO;
 		} else {
 			mosipLogger.error(IdRepoSecurityManager.getUser(), ID_REPO_VID_SERVICE, CREATE_VID,
 					"throwing vid creation failed");
@@ -466,10 +474,10 @@ public class VidServiceImpl implements VidService<VidRequestDTO, ResponseWrapper
 		VidResponseDTO response = new VidResponseDTO();
 		response.setVidStatus(vidObject.getStatusCode());
 		if (Boolean.TRUE.equals(policy.getAutoRestoreAllowed()) && policy.getRestoreOnAction().equals(vidStatus)) {
-			Vid createVidResponse = generateVidWithActiveUin(uin, vidObject.getVidTypeCode());
+			VidResponseDTO createVidResponse = generateVidWithActiveUin(uin, vidObject.getVidTypeCode());
 			VidResponseDTO restoredVidDTO = new VidResponseDTO();
 			restoredVidDTO.setVid(createVidResponse.getVid());
-			restoredVidDTO.setVidStatus(createVidResponse.getStatusCode());
+			restoredVidDTO.setVidStatus(createVidResponse.getVidStatus());
 			response.setRestoredVid(restoredVidDTO);
 		}
 		return response;
@@ -506,9 +514,9 @@ public class VidServiceImpl implements VidService<VidRequestDTO, ResponseWrapper
 			updateVidStatus(VID_REGENERATE_ACTIVE_STATUS, vidObject, decryptedUin, policy);
 			List<String> uinList = Arrays.asList(decryptedUin.split(SPLITTER));
 			VidResponseDTO response = new VidResponseDTO();
-			Vid generateVidObject = generateVidWithActiveUin(uinList.get(1), vidObject.getVidTypeCode());
+			VidResponseDTO generateVidObject = generateVidWithActiveUin(uinList.get(1), vidObject.getVidTypeCode());
 			response.setVid(generateVidObject.getVid());
-			response.setVidStatus(generateVidObject.getStatusCode());
+			response.setVidStatus(generateVidObject.getVidStatus());
 			return buildResponse(response, id.get("regenerate"));
 		} catch (IdRepoAppUncheckedException e) {
 			mosipLogger.error(IdRepoSecurityManager.getUser(), ID_REPO_VID_SERVICE, REGENERATE_VID,
