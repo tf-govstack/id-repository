@@ -250,7 +250,7 @@ public class VidServiceImpl implements VidService<VidRequestDTO, ResponseWrapper
 			vidObject.setUpdatedBy(IdRepoSecurityManager.getUser());
 			vidObject.setUpdatedDTimes(DateUtils.getUTCCurrentDateTime());
 			vidObject.setUin(uinToEncrypt);
-			Vid revokedVid = vidRepo.saveAndFlush(vidObject);
+			vidRepo.saveAndFlush(vidObject);
 			// Get the salted ID Hash before modifiying the vid entity, otherwise result in
 			// onFlushDirty call in the interceptor resulting in inconsistently encrypted
 			// UIN value in VID entity
@@ -259,8 +259,8 @@ public class VidServiceImpl implements VidService<VidRequestDTO, ResponseWrapper
 						Collections.singletonList(createVidInfo(vidObject, idHashAndAttributes)), true);
 			VidResponseDTO vidResponseDTO = generateVid(uin, vidType, vidStatus);			
 			VidResponseDTO restoreVid = new VidResponseDTO();
-			restoreVid.setVid(revokedVid.getVid());
-			restoreVid.setVidStatus(revokedVid.getStatusCode());
+			restoreVid.setVid(vidObject.getVid());
+			restoreVid.setVidStatus(vidObject.getStatusCode());
 			vidResponseDTO.setRestoredVid(restoreVid);			
 			return vidResponseDTO;
 		} else {
