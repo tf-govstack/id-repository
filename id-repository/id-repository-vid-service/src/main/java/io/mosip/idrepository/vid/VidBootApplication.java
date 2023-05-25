@@ -1,10 +1,12 @@
 package io.mosip.idrepository.vid;
 
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import io.mosip.idrepository.core.security.IdRepoSecurityManager;
 import io.mosip.idrepository.core.util.DummyPartnerCheckUtil;
@@ -15,11 +17,13 @@ import io.mosip.kernel.dataaccess.hibernate.config.HibernateDaoConfig;
  *
  * @author Prem Kumar
  */
-@SpringBootApplication(exclude = HibernateDaoConfig.class)
+@SpringBootApplication(exclude = {HibernateDaoConfig.class})
 @Import({ IdRepoSecurityManager.class, DummyPartnerCheckUtil.class })
 @ComponentScan(basePackages = { "io.mosip.idrepository.vid.*", "io.mosip.idrepository.core.*",
 		"${mosip.auth.adapter.impl.basepackage}" }, excludeFilters = @ComponentScan.Filter(type = FilterType.REGEX, pattern = {
 				"io.mosip.idrepository.core.entity", "io.mosip.kernel.dataaccess.hibernate.config.HibernateDaoConfig" }))
+@EnableBatchProcessing
+@EnableScheduling
 public class VidBootApplication {
 
 	/**
