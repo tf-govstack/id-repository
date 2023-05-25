@@ -15,6 +15,7 @@ import io.mosip.idrepository.vid.entity.ExpiredVid;
 import io.mosip.idrepository.vid.entity.Vid;
 import io.mosip.idrepository.vid.repository.ExpiredVidRepo;
 import io.mosip.idrepository.vid.repository.VidRepo;
+import io.mosip.idrepository.vid.service.impl.NotificationService;
 
 @Component
 public class VidItemTasklet implements Tasklet {
@@ -24,11 +25,15 @@ public class VidItemTasklet implements Tasklet {
 
 	@Autowired
 	private ExpiredVidRepo expiredVidRepo;
+	
+	@Autowired
+	private NotificationService notifictionService;
 
 	@Override
 	public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
 		storeExpiredVids();
-
+		
+		//notifictionService.sendNotification("5490873289160278");
 		// List<NotificationsRecord>
 		// loop thorugh the above list
 		// send notifications servicd (By calling the notification service)
@@ -36,15 +41,17 @@ public class VidItemTasklet implements Tasklet {
 	}
 
 	public void storeExpiredVids() {
-		List<Vid> expiredIdmapVids = vidRepo.findExpiredVids(LocalDateTime.now());
-
-		List<ExpiredVid> expiredVids = new ArrayList<>();
-
-		expiredIdmapVids.forEach(vid -> {
-			expiredVids.add(new ExpiredVid(vid.getVid(), LocalDateTime.now(), false));
-		});
-
-		expiredVidRepo.saveAll(expiredVids);
+//		List<Vid> expiredIdmapVids = vidRepo.findExpiredVids(LocalDateTime.now());
+//
+//		List<ExpiredVid> expiredVids = new ArrayList<>();
+//
+//		expiredIdmapVids.forEach(vid -> {
+//			expiredVids.add(new ExpiredVid(vid.getVid(), LocalDateTime.now(), false));
+//		});
+//
+//		expiredVidRepo.saveAll(expiredVids);\
+		
+		expiredVidRepo.insertExpiredVids();
 	}
 
 }
