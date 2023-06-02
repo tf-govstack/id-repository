@@ -4,8 +4,10 @@ import static io.mosip.idrepository.core.constant.IdRepoErrorConstants.CLIENT_ER
 import static io.mosip.idrepository.core.constant.IdRepoErrorConstants.CONNECTION_TIMED_OUT;
 import static io.mosip.idrepository.core.constant.IdRepoErrorConstants.SERVER_ERROR;
 import static io.mosip.idrepository.core.constant.IdRepoErrorConstants.UNKNOWN_ERROR;
+import static io.mosip.idrepository.core.constant.IdRepoErrorConstants.API_RESOURCE_ACCESS_EXCEPTION;
 
 import java.io.IOException;
+import java.net.URI;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
@@ -15,14 +17,23 @@ import java.util.concurrent.TimeoutException;
 import javax.annotation.PostConstruct;
 import javax.validation.Valid;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.RequestBodySpec;
 import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -61,6 +72,8 @@ public class RestHelper {
 	@Autowired
 	private ObjectMapper mapper;
 	
+	private RestTemplate restTemplate;
+	
 	@Autowired
 	private ApplicationContext ctx;
 
@@ -75,6 +88,12 @@ public class RestHelper {
 
 	/** The Constant METHOD_REQUEST_ASYNC. */
 	private static final String METHOD_REQUEST_ASYNC = "requestAsync";
+	
+	/** The Constant METHOD_POST_API. */
+	private static final String METHOD_POST_API = "postApi";
+	
+	/** The Constant METHOD_GET_API. */
+	private static final String METHOD_GET_API = "getApi";
 
 	/** The Constant CLASS_REST_HELPER. */
 	private static final String CLASS_REST_HELPER = "RestHelper";
@@ -90,8 +109,9 @@ public class RestHelper {
 	
 	private WebClient webClient;
 	
-	public RestHelper(WebClient webClient) {
+	public RestHelper(WebClient webClient, RestTemplate restTemplate) {
 		this.webClient = webClient;
+		this.restTemplate = restTemplate;
 	}
 	
 	@PostConstruct
@@ -287,5 +307,112 @@ public class RestHelper {
 					ex.getMessage());
 			return new RestServiceException(UNKNOWN_ERROR, ex);
 		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	public <T> T postApi(String uri, MediaType mediaType, Object requestType, Class<?> responseClass)
+			throws RestServiceException {
+		try {
+			mosipLogger.debug(IdRepoSecurityManager.getUser(), CLASS_REST_HELPER, METHOD_POST_API,
+					uri);
+			T response = (T) restTemplate.postForObject(uri, setRequestHeader(requestType, mediaType),
+					responseClass);
+			return response;
+
+		} catch (Exception e) {
+			mosipLogger.error(IdRepoSecurityManager.getUser(), CLASS_REST_HELPER, METHOD_POST_API,
+					e.getMessage() + ExceptionUtils.getStackTrace(e));
+
+			throw new RestServiceException(API_RESOURCE_ACCESS_EXCEPTION, e);
+		}
+	}
+	
+	/**
+	 * this method sets token to header of the request
+	 *
+	 * @param requestType
+	 * @param mediaType
+	 * @return HttpEntity<Object>
+	 */
+	@SuppressWarnings("unchecked")
+	private HttpEntity<Object> setRequestHeader(Object requestType, MediaType mediaType) {
+		MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
+		headers.add("Authorization", "futureProof");
+		if (mediaType != null) {
+			headers.add("Content-Type", mediaType.toString());
+		}
+		if (requestType != null) {
+			try {
+				HttpEntity<Object> httpEntity = (HttpEntity<Object>) requestType;
+				HttpHeaders httpHeader = httpEntity.getHeaders();
+				for (String key : httpHeader.keySet()) {
+					if (!(headers.containsKey("Content-Type") && Objects.equals(key, "Content-Type"))){	
+							List<String> headerKeys = httpHeader.get(key);
+							if(headerKeys != null && !headerKeys.isEmpty()){
+								headers.add(key,headerKeys.get(0));
+							}
+					}
+				}
+				return new HttpEntity<>(httpEntity.getBody(), headers);
+			} catch (ClassCastException e) {
+				return new HttpEntity<>(requestType, headers);
+			}
+		} else
+			return new HttpEntity<>(headers);
+	}
+	
+	public Object getApi(String uri, List<String> pathsegments, String queryParamName, String queryParamValue,
+			Class<?> responseType) throws RestServiceException {
+
+		Object obj = null;
+		UriComponentsBuilder builder = null;
+		UriComponents uriComponents = null;
+		if (uri != null) {
+			builder = UriComponentsBuilder.fromUriString(uri);
+			if (!((pathsegments == null) || (pathsegments.isEmpty()))) {
+				for (String segment : pathsegments) {
+					if (!((segment == null) || (("").equals(segment)))) {
+						builder.pathSegment(segment);
+					}
+				}
+			}
+
+			if (StringUtils.isNotEmpty(queryParamName)) {
+
+				String[] queryParamNameArr = queryParamName.split(",");
+				String[] queryParamValueArr = queryParamValue.split(",");
+				for (int i = 0; i < queryParamNameArr.length; i++) {
+					builder.queryParam(queryParamNameArr[i], queryParamValueArr[i]);
+				}
+
+			}
+			try {
+
+				uriComponents = builder.build(false).encode();
+				obj = getApi(uriComponents.toUri(), responseType, null);
+
+			} catch (Exception e) {
+				mosipLogger.error(IdRepoSecurityManager.getUser(), CLASS_REST_HELPER, METHOD_GET_API,
+						e.getMessage() + ExceptionUtils.getStackTrace(e));
+				
+				throw new RestServiceException(API_RESOURCE_ACCESS_EXCEPTION, e);
+
+			}
+		}
+
+		return obj;
+	}
+	
+	public <T> T getApi(URI uri, Class<?> responseType,
+			MultiValueMap<String, String> headerMap) throws RestServiceException {
+		try {
+			return (T) restTemplate.exchange(uri, HttpMethod.GET, headerMap == null ? setRequestHeader(null, null) : new HttpEntity<T>(headerMap), responseType)
+					.getBody();
+		} catch (Exception e) {
+			mosipLogger.error(IdRepoSecurityManager.getUser(), CLASS_REST_HELPER, METHOD_GET_API,
+					e.getMessage() + ExceptionUtils.getStackTrace(e));
+			throw new RestServiceException(API_RESOURCE_ACCESS_EXCEPTION, e);
+		}
+
 	}
 }

@@ -56,6 +56,12 @@ public enum AuditEvents {
 	GET_DRAFT_REQUEST_RESPONSE("IDR-024", "System Event"),
 	
 	EXTRACT_BIOMETRICS_DRAFT_REQUEST_RESPONSE("IDR-025", "System Event"),
+	
+	TOKEN_GENERATION_FAILED("IDR-026", "System Event"),
+	
+	TEMPLATE_EXCEPTION("IDR-027", "System Event"),
+	
+	SEND_EXPIRY_NOTIFICATIONS("IDR-028", "System Event"),
 	;
 	
 	

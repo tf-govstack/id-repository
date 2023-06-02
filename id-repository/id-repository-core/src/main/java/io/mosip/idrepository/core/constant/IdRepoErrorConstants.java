@@ -103,6 +103,18 @@ public enum IdRepoErrorConstants {
 	/** The uin hash mismatch. */
 	UIN_HASH_MISMATCH("IDR-VID-006", "Uin hash does not match"),
 	
+	TEMPLATE_EXCEPTION("IDR-VID-007", "Failed to get template"),
+	NOTIFICATION_FAILURE("IDR-VID-008", "Sending notification(Email and SMS) failed."),
+	UNABLE_TO_PROCESS("IDR-VID-009", "Unable to process"),
+	JSON_PROCESSING_EXCEPTION("IDR-VID-010", "JSON Processing Exception occured"),
+	RESIDENT_SYS_EXCEPTION("IDR-VID-011", "System exception occured"),
+	INVALID_ID("IDR-VID-012", "Invalid id"),
+	API_RESOURCE_ACCESS_EXCEPTION("IDR-VID-013", "Unable to access API resource"),
+	INVALID_API_RESPONSE("IDR-VID-014", "Invalid APi response from - "),
+	TOKEN_GENERATION_FAILED("IDR-VID-015", "Token generation failed"),
+	IO_EXCEPTION("IDR-VID-016", "IO Exception occured"),
+	CLAIM_NOT_AVAILABLE("IDR-VID-017", "Claim not available: %s"),
+	
 	/** The authorization failed. */
 	/** The document hash mismatch. */
 	AUTHENTICATION_FAILED("IDR-IDS-012", "Authentication Failed"),

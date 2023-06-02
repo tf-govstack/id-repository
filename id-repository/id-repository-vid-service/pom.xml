@@ -13,6 +13,7 @@
 	<description>ID-Repository Virtual ID Service</description>
 
 	<properties>
+		<commons.packet.manager.version>1.2.0.1-B1</commons.packet.manager.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>11</maven.compiler.target>
@@ -24,6 +25,7 @@
 		<kernel.dataaccess.hibernate.version>1.2.0.1-SNAPSHOT</kernel.dataaccess.hibernate.version>
 		<json.schema.validator.version>2.2.10</json.schema.validator.version>
 		<springdoc.version>1.5.10</springdoc.version>
+		<googlecode.json-simple.version>1.1.1</googlecode.json-simple.version>
 	</properties>
 
 	<dependencies>
@@ -72,6 +74,51 @@
 			<groupId>io.mosip.kernel</groupId>
 			<artifactId>kernel-core</artifactId>
 			<version>${kernel.core.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.mosip.kernel</groupId>
+			<artifactId>kernel-templatemanager-velocity</artifactId>
+			<version>${kernel.core.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>io.mosip.kernel</groupId>
+					<artifactId>kernel-core</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>dom4j</groupId>
+					<artifactId>dom4j</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+	        <groupId>org.mvel</groupId>
+	        <artifactId>mvel2</artifactId>
+	        <version>2.4.7.Final</version>
+	   </dependency>
+	   <dependency>
+			<groupId>io.mosip.commons</groupId>
+			<artifactId>commons-packet-manager</artifactId>
+			<version>${commons.packet.manager.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>io.mosip.kernel</groupId>
+					<artifactId>kernel-core</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>io.mosip.kernel</groupId>
+					<artifactId>kernel-logger-logback</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-batch</artifactId>
+			<version>${spring.boot.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.googlecode.json-simple</groupId>
+			<artifactId>json-simple</artifactId>
+			<version>${googlecode.json-simple.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
