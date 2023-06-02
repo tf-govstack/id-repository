@@ -11,12 +11,14 @@ import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.Scheduled;
 
 @Configuration
 @EnableBatchProcessing
+@ConditionalOnProperty(name="mosip.vid.expiry.notification.enabled", havingValue = "true")
 public class BatchConfiguration {
 	
 	@Autowired
@@ -42,8 +44,8 @@ public class BatchConfiguration {
 	/**
 	 * Process job.
 	 */
-	@Scheduled(fixedDelayString = "10000")
-	//@Scheduled(cron="5 0 * * *")
+	//@Scheduled(fixedDelayString = "10000")
+	@Scheduled(cron="${vid.batch.cron.expression:0 */10 * * * ?}")
 	public void processJob() {
 		try {
 			JobParameters jobParameters = new JobParametersBuilder().addLong("time", System.currentTimeMillis())

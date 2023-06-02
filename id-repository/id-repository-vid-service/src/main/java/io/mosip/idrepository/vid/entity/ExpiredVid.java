@@ -1,6 +1,6 @@
 package io.mosip.idrepository.vid.entity;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -9,32 +9,32 @@ import javax.persistence.Table;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "vid_expirylist", schema = "idmap")
 @Entity
 public class ExpiredVid {
 	
-	public ExpiredVid(String vid, LocalDateTime currentDate, boolean isSend) {
-		this.vid = vid;
-		this.currentDate = currentDate;
-		this.isSend = isSend;
-	}
-	
 	/** The Id value */
 	@Id
-	private String id;
+	private int id;
 
 	/** The vid value */
 	private String vid;
 	
-	@Column(name = "currentdate")
-	private LocalDateTime currentDate;
+	@Column(name = "cr_date")
+	private LocalDate createdDate;
 	
-	@Column(name = "issend")
-	private boolean isSend;
+	@Column(name = "is_smssent")
+	private Boolean isSMSSent;
+	
+	@Column(name = "is_emailsent")
+	private Boolean isEmailSent;
 	
 }
