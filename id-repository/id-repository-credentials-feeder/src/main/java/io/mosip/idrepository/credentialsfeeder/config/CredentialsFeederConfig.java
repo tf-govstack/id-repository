@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import io.mosip.idrepository.core.config.IdRepoDataSourceConfig;
@@ -59,13 +60,13 @@ public class CredentialsFeederConfig extends IdRepoDataSourceConfig {
 	}
 	
 	@Bean
-	public RestHelper restHelper(@Qualifier("selfTokenWebClient") WebClient webClient) {
-		return new RestHelper(webClient);
+	public RestHelper restHelper(@Qualifier("selfTokenWebClient") WebClient webClient, @Qualifier("selfTokenRestTemplate") RestTemplate restTemplate) {
+		return new RestHelper(webClient, restTemplate);
 	}
 	
 	@Bean
-	public IdRepoSecurityManager securityManager(@Qualifier("selfTokenWebClient") WebClient webClient) {
-		return new IdRepoSecurityManager(restHelper(webClient));
+	public IdRepoSecurityManager securityManager(@Qualifier("selfTokenWebClient") WebClient webClient, @Qualifier("selfTokenRestTemplate") RestTemplate restTemplate) {
+		return new IdRepoSecurityManager(restHelper(webClient, restTemplate));
 	}
 	
 	@Bean
