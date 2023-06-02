@@ -49,6 +49,4 @@ public interface VidRepo extends JpaRepository<Vid, String> {
 	
 	List<Vid> findByUinHashAndStatusCodeAndExpiryDTimesAfter(String uinHash, String statusCode, LocalDateTime currentTime);
 
-	@Query("SELECT v FROM Vid v WHERE v.vidTypeCode= 'TEMPORARY' and v.expiryDTimes< :currentDTimes")
-	public List<Vid> findExpiredVids(@Param("currentDTimes") LocalDateTime currentDTimes);
 }
