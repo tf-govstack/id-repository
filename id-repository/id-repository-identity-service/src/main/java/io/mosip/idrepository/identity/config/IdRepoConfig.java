@@ -269,18 +269,18 @@ public class IdRepoConfig extends IdRepoDataSourceConfig
 	}
 
 	@Bean
-	public CredentialServiceManager credentialServiceManager(@Qualifier("selfTokenWebClient") WebClient webClient) {
-		return new CredentialServiceManager(restHelperWithAuth(webClient));
+	public CredentialServiceManager credentialServiceManager(@Qualifier("selfTokenWebClient") WebClient webClient, @Qualifier("selfTokenRestTemplate") RestTemplate restTemplate) {
+		return new CredentialServiceManager(restHelperWithAuth(webClient, restTemplate));
 	}
 
 	@Bean
-	public RestHelper restHelperWithAuth(@Qualifier("selfTokenWebClient") WebClient webClient) {
-		return new RestHelper(webClient);
+	public RestHelper restHelperWithAuth(@Qualifier("selfTokenWebClient") WebClient webClient, @Qualifier("selfTokenRestTemplate") RestTemplate restTemplate) {
+		return new RestHelper(webClient, restTemplate);
 	}
 
 	@Bean
-	public IdRepoSecurityManager securityManagerWithAuth(@Qualifier("selfTokenWebClient") WebClient webClient) {
-		return new IdRepoSecurityManager(restHelperWithAuth(webClient));
+	public IdRepoSecurityManager securityManagerWithAuth(@Qualifier("selfTokenWebClient") WebClient webClient, @Qualifier("selfTokenRestTemplate") RestTemplate restTemplate) {
+		return new IdRepoSecurityManager(restHelperWithAuth(webClient, restTemplate));
 	}
 	
 	@Bean
