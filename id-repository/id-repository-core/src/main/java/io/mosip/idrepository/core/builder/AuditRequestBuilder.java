@@ -72,7 +72,7 @@ public class AuditRequestBuilder {
 		auditRequest.setSessionUserName("sessionUserName");
 		auditRequest.setId(id);
 		auditRequest.setIdType(Objects.isNull(idType) ? null : idType.getIdType());
-		auditRequest.setCreatedBy(IdRepoSecurityManager.getUser());
+		auditRequest.setCreatedBy(event.getEventId() == "IDR-028" ? "service-account-mosip-idrepo-client-vid-batch" : IdRepoSecurityManager.getUser());
 		auditRequest.setModuleName(module.getModuleName());
 		auditRequest.setModuleId(module.getModuleId());
 		auditRequest.setDescription(desc);

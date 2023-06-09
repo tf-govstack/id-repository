@@ -1,5 +1,6 @@
 package io.mosip.idrepository.vid.batch.config;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -48,7 +49,7 @@ public class VidItemTasklet implements Tasklet {
 
 	/** The Constant LOGGER. */
 	private static final Logger LOGGER = IdRepoLogger.getLogger(VidItemTasklet.class);
-	
+
 	private static final String EMAIL_SUCCESS = "Notification has been sent to the provided email ";
 
 	@Autowired
@@ -61,10 +62,15 @@ public class VidItemTasklet implements Tasklet {
 
 	ForkJoinPool forkJoinPool;
 
+	List<String> skipErrorCodes;
+
 	@PostConstruct
 	public void init() {
 		forkJoinPool = new ForkJoinPool(threadCount);
 		executionCount = 0;
+		skipErrorCodes = new ArrayList<>();
+		skipErrorCodes.add(IdRepoErrorConstants.NOTIFICATION_FAILURE.getErrorCode());
+		skipErrorCodes.add(IdRepoErrorConstants.INVALID_ID.getErrorCode());
 	}
 
 	@Override
@@ -107,10 +113,11 @@ public class VidItemTasklet implements Tasklet {
 						LOGGER.error(IdRepoSecurityManager.getUser(), VID_ITEM_TASKLET, "batchid = " + batchId,
 								"sms sent successsfully, failed to send Email");
 					}
+
+					notificationSentCount++;
 					vid.setIsSMSSent(true);
 					vid.setIsEmailSent(true);
 					expiredVidRepo.save(vid);
-					notificationSentCount++;
 				} catch (IdRepoAppException e) {
 					LOGGER.error(IdRepoSecurityManager.getUser(), VID_ITEM_TASKLET, "batchid = " + batchId,
 							"exception while sending notification: " + ExceptionUtils.getStackTrace(e));
@@ -118,11 +125,13 @@ public class VidItemTasklet implements Tasklet {
 					// if exception thrown need to check for which error codes need to retry
 					// need to check when exception thrown any notification(email or sms) is sent or
 					// not
-					if (e.getErrorCode().equalsIgnoreCase(IdRepoErrorConstants.NOTIFICATION_FAILURE.getErrorCode())) {
+					if (skipErrorCodes.stream().anyMatch(e.getErrorCode()::equalsIgnoreCase)) {
+						LOGGER.info(IdRepoSecurityManager.getUser(), VID_ITEM_TASKLET, "batchid = " + batchId,
+								"skipping record to avoid retry");
+						notificationSentCount++;
 						vid.setIsSMSSent(true);
 						vid.setIsEmailSent(true);
 						expiredVidRepo.save(vid);
-						notificationSentCount++;
 					}
 //					else if (e.getErrorCode().equalsIgnoreCase("")){
 //						vid.setIsEmailSent(true);
@@ -141,9 +150,12 @@ public class VidItemTasklet implements Tasklet {
 		executionCount++;
 		LOGGER.info("Retry count: " + executionCount);
 
+		if (notificationSentCount != 0) {
+			audit.audit(AuditModules.ID_REPO_VID_SERVICE, AuditEvents.SEND_EXPIRY_NOTIFICATIONS, batchId, IdType.VID,
+					"Notifications sent for expired vids, count: " + notificationSentCount);
+		}
+
 		if (executionCount >= maxExecutionCount || notificationSentCount == vids.size()) {
-			audit.audit(AuditModules.ID_REPO_VID_SERVICE, AuditEvents.SEND_EXPIRY_NOTIFICATIONS, batchId,
-					IdType.VID, "Notifications sent for expired vids, count: " + notificationSentCount);
 			executionCount = 0;
 			return RepeatStatus.FINISHED;
 		}
