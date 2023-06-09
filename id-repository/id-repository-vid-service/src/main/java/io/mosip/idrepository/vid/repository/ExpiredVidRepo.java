@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import io.mosip.idrepository.vid.entity.ExpiredVid;
 
 @Repository
-public interface ExpiredVidRepo extends JpaRepository<ExpiredVid, String> {
+public interface ExpiredVidRepo extends JpaRepository<ExpiredVid, Integer> {
 
 	@Transactional
 	@Modifying
