@@ -43,6 +43,8 @@ public class VidItemTasklet implements Tasklet {
 	private int executionCount;
 
 	private int notificationSentCount;
+	
+	private int notificationSkipCount;
 
 	@Autowired
 	private ExpiredVidRepo expiredVidRepo;
@@ -91,6 +93,7 @@ public class VidItemTasklet implements Tasklet {
 				"total records picked for sending notification: " + vids.size());
 
 		notificationSentCount = 0;
+		notificationSkipCount = 0;
 
 		try {
 			forkJoinPool.submit(() -> vids.parallelStream().forEach(vid -> {
@@ -128,6 +131,7 @@ public class VidItemTasklet implements Tasklet {
 					if (skipErrorCodes.stream().anyMatch(e.getErrorCode()::equalsIgnoreCase)) {
 						LOGGER.info(IdRepoSecurityManager.getUser(), VID_ITEM_TASKLET, "batchid = " + batchId,
 								"skipping record to avoid retry");
+						notificationSkipCount++;
 						notificationSentCount++;
 						vid.setIsSMSSent(true);
 						vid.setIsEmailSent(true);
@@ -150,9 +154,9 @@ public class VidItemTasklet implements Tasklet {
 		executionCount++;
 		LOGGER.info("Retry count: " + executionCount);
 
-		if (notificationSentCount != 0) {
+		if ((notificationSentCount - notificationSkipCount) != 0 ) {
 			audit.audit(AuditModules.ID_REPO_VID_SERVICE, AuditEvents.SEND_EXPIRY_NOTIFICATIONS, batchId, IdType.VID,
-					"Notifications sent for expired vids, count: " + notificationSentCount);
+					"Notifications sent for expired vids, count: " + (notificationSentCount-notificationSkipCount));
 		}
 
 		if (executionCount >= maxExecutionCount || notificationSentCount == vids.size()) {
