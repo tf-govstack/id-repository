@@ -41,7 +41,10 @@ import io.mosip.idrepository.core.helper.RestHelper;
 import io.mosip.idrepository.core.logger.IdRepoLogger;
 import io.mosip.idrepository.core.security.IdRepoSecurityManager;
 import io.mosip.idrepository.vid.dto.JsonValue;
+import io.mosip.idrepository.vid.dto.LanguageDto;
+import io.mosip.idrepository.vid.dto.LanguageResponseDto;
 import io.mosip.kernel.core.exception.ServiceError;
+import io.mosip.kernel.core.http.ResponseWrapper;
 import io.mosip.kernel.core.logger.spi.Logger;
 import io.mosip.kernel.core.util.StringUtils;
 
@@ -55,10 +58,12 @@ public class Utility {
 	private static final String METHOD_GET_MAILING_ATTRIBUTES = "loadRegProcessorIdentityJson";
 	private static final String METHOD_IDREPO_JSON = "retrieveIdrepoJson";
 	private static final String METHOD_REGISTRATION_PROCESSOR_MAPPING = "getRegistrationProcessorMappingJson";
+	private static final String METHOD_LANGCODE_NATIVE_NAME = "getLangCodeFromNativeName";
 
 	private static final String IDENTITY = "identity";
 	private static final String VALUE = "value";
 	private static final String IDREPOGETIDBYID = "IDREPOGETIDBYID";
+	private static final String LANGUAGE = "LANGUAGE";
 	private static final String NAME = "name";
 	private static final String COMMA = ",";
 	private static final String EMAIL = "email";
@@ -179,7 +184,7 @@ public class Utility {
 		return attributes;
 	}
 
-	private Set<String> getPreferredLanguage(JSONObject demographicIdentity) {
+	private Set<String> getPreferredLanguage(JSONObject demographicIdentity) throws IdRepoAppException {
 		String preferredLang = null;
 		String preferredLangAttribute = env.getProperty("mosip.default.user-preferred-language-attribute");
 		if (!StringUtils.isBlank(preferredLangAttribute)) {
@@ -188,14 +193,66 @@ public class Utility {
 				preferredLang = String.valueOf(object);
 				if (preferredLang.contains(COMMA)) {
 					String[] preferredLangArray = preferredLang.split(COMMA);
-					return Set.of(preferredLangArray);
+					String[] preferredLangCodeArray = new String[preferredLangArray.length];
+
+					for (int i = 0; i < preferredLangArray.length; i++) {
+						preferredLangCodeArray[i] = getLangCodeFromNativeName(preferredLangArray[i]);
+					}
+					return Set.of(preferredLangCodeArray);
 				}
 			}
 		}
 		if (preferredLang != null) {
+			preferredLang = getLangCodeFromNativeName(preferredLang);
 			return Set.of(preferredLang);
 		}
 		return Set.of();
+	}
+
+	private String getLangCodeFromNativeName(String nativeName) throws IdRepoAppException {
+		String langCode = null;
+		try {
+			ResponseWrapper<LanguageResponseDto> response = (ResponseWrapper) restHelper
+					.getApi(env.getProperty(LANGUAGE), null, "", "", ResponseWrapper.class);
+
+			if (response.getErrors() != null && response.getErrors().size() > 0) {
+				response.getErrors().stream().forEach(r -> {
+					mosipLogger.error(IdRepoSecurityManager.getUser(), CLASS_UTILITY, METHOD_LANGCODE_NATIVE_NAME,
+							"Utility::getLangCodeFromNativeName():: error with error message " + r.getMessage());
+				});
+			}
+
+			LanguageResponseDto languageResponseDto = objMapper
+					.readValue(objMapper.writeValueAsString(response.getResponse()), LanguageResponseDto.class);
+
+			mosipLogger.debug(IdRepoSecurityManager.getUser(), CLASS_UTILITY, METHOD_LANGCODE_NATIVE_NAME,
+					"Utility::getLangCodeFromNativeName()::exit");
+			for (LanguageDto dto : languageResponseDto.getLanguages()) {
+				if (dto.getNativeName().equalsIgnoreCase(nativeName) || dto.getCode().equalsIgnoreCase(nativeName)
+						|| dto.getName().equalsIgnoreCase(nativeName)) {
+					langCode = dto.getCode();
+				}
+			}
+
+		} catch (Exception e) {
+			mosipLogger.error(IdRepoSecurityManager.getUser(), CLASS_UTILITY, METHOD_LANGCODE_NATIVE_NAME,
+					"Utility::getLangCodeFromNativeName():: error with error message " + e.getMessage());
+			if (e.getCause() instanceof HttpClientErrorException) {
+				HttpClientErrorException httpClientException = (HttpClientErrorException) e.getCause();
+				throw new IdRepoAppException(IdRepoErrorConstants.API_RESOURCE_ACCESS_EXCEPTION.getErrorCode(),
+						httpClientException.getResponseBodyAsString());
+
+			} else if (e.getCause() instanceof HttpServerErrorException) {
+				HttpServerErrorException httpServerException = (HttpServerErrorException) e.getCause();
+				throw new IdRepoAppException(IdRepoErrorConstants.API_RESOURCE_ACCESS_EXCEPTION.getErrorCode(),
+						httpServerException.getResponseBodyAsString());
+			} else {
+				throw new IdRepoAppException(IdRepoErrorConstants.API_RESOURCE_ACCESS_EXCEPTION.getErrorCode(),
+						IdRepoErrorConstants.API_RESOURCE_ACCESS_EXCEPTION.getErrorMessage() + e.getMessage(), e);
+			}
+		}
+		return langCode;
+
 	}
 
 	private Set<String> getDataCapturedLanguages(JSONObject mapperIdentity, JSONObject demographicIdentity)
