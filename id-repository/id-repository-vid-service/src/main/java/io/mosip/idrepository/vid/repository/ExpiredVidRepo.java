@@ -15,7 +15,7 @@ public interface ExpiredVidRepo extends JpaRepository<ExpiredVid, Integer> {
 
 	@Transactional
 	@Modifying
-	@Query(value="begin transaction; insert into idmap.vid_expirylist(vid, cr_date, is_smssent, is_emailsent) SELECT vid, current_date, false, false FROM idmap.vid WHERE vidtyp_code= 'TEMPORARY' and CAST(expiry_dtimes AS DATE)=current_date+1 and vid not in (SELECT vid FROM idmap.vid_expirylist where cr_date=current_date) ;commit", nativeQuery=true)
+	@Query(value="begin transaction; insert into idmap.vid_expirylist(vid, cr_date, is_smssent, is_emailsent) SELECT vid, current_date, false, false FROM idmap.vid WHERE vidtyp_code= 'TEMPORARY' and status_code!='REVOKED' and CAST(expiry_dtimes AS DATE)=current_date+1 and vid not in (SELECT vid FROM idmap.vid_expirylist where cr_date=current_date) ;commit", nativeQuery=true)
 	public void insertExpiredVids();
 	
 	@Transactional
