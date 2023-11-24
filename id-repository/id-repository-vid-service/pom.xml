@@ -26,6 +26,7 @@
 		<json.schema.validator.version>2.2.10</json.schema.validator.version>
 		<springdoc.version>1.5.10</springdoc.version>
 		<googlecode.json-simple.version>1.1.1</googlecode.json-simple.version>
+		<powermock.version>2.0.0</powermock.version>
 	</properties>
 
 	<dependencies>
@@ -158,6 +159,18 @@
 			<artifactId>spring-boot-configuration-processor</artifactId>
 			<version>${spring.boot.version}</version>
 			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.powermock</groupId>
+			<artifactId>powermock-api-mockito2</artifactId>
+			<version>${powermock.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.powermock</groupId>
+			<artifactId>powermock-module-junit4</artifactId>
+			<version>${powermock.version}</version>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 	<build>
